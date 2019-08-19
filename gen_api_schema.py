@@ -95,6 +95,8 @@ def parse_botapi():
                 schema["types"][title] = type_
     with open("build/schema.json", 'w') as f:
         json.dump(schema, f, indent=4)
+    with open("build/index.html", 'w') as f:
+        f.write("<h1>this file is just for gitlab to pick up and deploy pages normally</h1>")
 
 
 if __name__ == '__main__':
