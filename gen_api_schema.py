@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import os
 import json
 
-os.makedirs("build", exist_ok=True)
+os.makedirs("public", exist_ok=True)
 TYPE_OVERRIDES = {
     "String": "str",
     "Integer": "int",
@@ -93,9 +93,9 @@ def parse_botapi():
                 type_ = {"fields": determine_arguments(description_soup),
                          "description": escape_description(description_soup.text)}
                 schema["types"][title] = type_
-    with open("build/schema.json", 'w') as f:
+    with open("public/schema.json", 'w') as f:
         json.dump(schema, f, indent=4)
-    with open("build/index.html", 'w') as f:
+    with open("public/index.html", 'w') as f:
         f.write("<h1>this file is just for gitlab to pick up and deploy pages normally</h1>")
 
 
