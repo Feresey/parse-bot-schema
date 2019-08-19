@@ -28,7 +28,6 @@ before_script:
 pages:
   script:
     - python gen_api_schema.py
-    - mkdir public
   artifacts:
     paths:
       - public
