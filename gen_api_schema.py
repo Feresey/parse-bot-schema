@@ -55,7 +55,7 @@ def determine_return(description_soup):
 
 
 def determine_arguments(description_soup):
-    if "requires no parameters" in description_soup.text:
+    if "requires no parameters" in description_soup.text.lower():
         return {}
     else:
         table = description_soup.find_next_sibling("table")
