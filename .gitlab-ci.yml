@@ -29,7 +29,7 @@ pages:
   script:
     - python gen_api_schema.py
     - mkdir public
-    - mv build/* public/*
+    - mv build/* public/
   artifacts:
     paths:
       - public
