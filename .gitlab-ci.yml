@@ -27,7 +27,7 @@ before_script:
 
 pages:
   script:
-    - python gen_api.schema
+    - python gen_api_schema.py
   artifacts:
     paths:
       - build
