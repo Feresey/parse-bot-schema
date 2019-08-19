@@ -78,7 +78,6 @@ def determine_arguments(description_soup):
             for argtype in argtypes:
                 argtype = argtype.strip()
                 argtype = determine_argtype(argtype)
-                print(argtype)
                 argdata["types"].append(argtype)
             arguments[row[0].text] = argdata
         return arguments
