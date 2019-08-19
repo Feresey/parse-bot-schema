@@ -53,6 +53,14 @@ def determine_return(description_soup):
                 return_type = item.text
         return return_type
 
+def determine_argtype(argtype):
+    if argtype.startswith("Array of"):
+        argtype = "array({0})".format(determine_argtype(argtype.replace("Array of ", "", 1)))
+
+    if argtype in TYPE_OVERRIDES:
+        argtype = TYPE_OVERRIDES[argtype]
+    return argtype
+
 
 def determine_arguments(description_soup):
     if "requires no parameters" in description_soup.text.lower():
@@ -69,8 +77,8 @@ def determine_arguments(description_soup):
             argtypes = row[1].text.split(" or ")
             for argtype in argtypes:
                 argtype = argtype.strip()
-                if argtype in TYPE_OVERRIDES:
-                    argtype = TYPE_OVERRIDES[argtype]
+                argtype = determine_argtype(argtype)
+                print(argtype)
                 argdata["types"].append(argtype)
             arguments[row[0].text] = argdata
         return arguments
