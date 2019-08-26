@@ -1,3 +1,5 @@
+import time
+
 import requests
 from bs4 import BeautifulSoup
 import os
@@ -84,11 +86,27 @@ def determine_arguments(description_soup):
             arguments[row[0].text] = argdata
         return arguments
 
+def gen_build_info():
+    build_info = {}
+    if os.getenv("ci", False):
+        build_info["branch"] = os.getenv("CI_COMMIT_REF_NAME")
+        build_info["commit"] = "%s (%s), build #%s" % (os.getenv("CI_COMMIT_SHORT_SHA"), os.getenv("CI_COMMIT_MESSAGE"), os.getenv("CI_PIPELINE_IID"))
+        build_info["date"] = time.time()
+        build_info["pipeline_url"] = os.getenv("CI_PIPELINE_URL")
+    else:
+        print("Building locally.")
+        build_info["branch"] = None
+        build_info["commit"] = None
+        build_info["date"] = int(time.time())
+        build_info["pipeline_url"] = None
+    return build_info
+
 
 def parse_botapi():
     r = requests.get("https://core.telegram.org/bots/api")
     soup = BeautifulSoup(r.text, features="lxml")
-    schema = {"types": {}, "methods": {}, "version": soup.find_all("strong")[2].text.lstrip("Bot API ")}
+    schema = {"types": {}, "methods": {}, "version": soup.find_all("strong")[2].text.lstrip("Bot API "), "build_info": gen_build_info()}
+    print("Building schema.json for Bot API version %s", schema["version"])
     for section in soup.find_all("h4"):
         title = section.text
         if not " " in title:
@@ -98,10 +116,15 @@ def parse_botapi():
                           "returns": determine_return(description_soup),
                           "description": escape_description(description_soup.text)}
                 schema["methods"][title] = method
+                print("Adding method", title)
             else:
                 type_ = {"fields": determine_arguments(description_soup),
                          "description": escape_description(description_soup.text)}
                 schema["types"][title] = type_
+                print("Adding type", title)
+    print(len(schema["types"]), "types")
+    print(len(schema["methods"]), "methods")
+    print("Build info:", schema["build_info"])
     with open("public/schema.json", 'w') as f:
         json.dump(schema, f, indent=4)
 
