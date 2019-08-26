@@ -74,6 +74,8 @@ def determine_arguments(description_soup):
             argdata = {"types": [], "description": escape_description(description)}
             if len(row) == 4:
                 argdata["required"] = True if row[2].text == "Yes" else False
+            else:
+                argdata["required"] = not row[-1].text.startswith("Optional.")
             argtypes = row[1].text.split(" or ")
             for argtype in argtypes:
                 argtype = argtype.strip()
