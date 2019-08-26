@@ -88,7 +88,8 @@ def determine_arguments(description_soup):
 
 def gen_build_info():
     build_info = {}
-    if os.getenv("ci", False):
+    if os.getenv("CI", False):
+        print("Building on CI")
         build_info["branch"] = os.getenv("CI_COMMIT_REF_NAME")
         build_info["commit"] = "%s (%s), build #%s" % (os.getenv("CI_COMMIT_SHORT_SHA"), os.getenv("CI_COMMIT_MESSAGE"), os.getenv("CI_PIPELINE_IID"))
         build_info["date"] = time.time()
