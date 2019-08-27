@@ -1,5 +1,5 @@
 import time
-
+import html2markdown
 import requests
 from bs4 import BeautifulSoup
 import os
@@ -73,8 +73,8 @@ def determine_arguments(description_soup):
         arguments = {}
         for row in table.find_all("tr")[1:]:  # Skip first row (headers)
             row = row.find_all("td")
-            description = row[-1].text
-            argdata = {"types": [], "description": escape_description(description)}
+            description_soup = row[-1]
+            argdata = {"types": [], "description": gen_description(description_soup)}
             if len(row) == 4:
                 argdata["required"] = True if row[2].text == "Yes" else False
             else:
@@ -107,6 +107,29 @@ def gen_build_info():
     return build_info
 
 
+def get_html(soup):
+    for link in soup.find_all("a"):
+        if link["href"].startswith("#"):
+            if " " in link.text:
+                # Article
+                link["href"] = "#/articles/%s" % link.text
+            elif link.text[0].islower():
+                # Method
+                link["href"] = "#/methods/%s" % link.text
+            else:
+                # Probably type
+                link["href"] = "#/types/%s" % link.text
+    return str(soup).replace("<td>", "").replace("</td>", "")
+
+
+def gen_description(soup):
+    description = {}
+    description["plaintext"] = escape_description(soup.text)
+    description["html"] = get_html(soup)
+    description["markdown"] = html2markdown.convert(description["html"])
+    return description
+
+
 def parse_botapi():
     r = requests.get("https://core.telegram.org/bots/api")
     soup = BeautifulSoup(r.text, features="lxml")
@@ -115,20 +138,20 @@ def parse_botapi():
     print("Building schema.json for Bot API version", schema["version"])
     for section in soup.find_all("h4"):
         title = section.text
+        description_soup = section.find_next_sibling()
+        category = description_soup.find_previous_sibling("h3").text
         if not " " in title:
-            description_soup = section.find_next_sibling()
-            category = description_soup.find_previous_sibling("h3").text
             if title[0].islower():
                 method = {"arguments": determine_arguments(description_soup),
                           "returns": determine_return(description_soup),
-                          "description": escape_description(description_soup.text),
-                          "category":category}
+                          "description": gen_description(description_soup),
+                          "category": category}
                 schema["methods"][title] = method
                 print("Adding method", title, "of category", category)
             else:
                 type_ = {"fields": determine_arguments(description_soup),
-                         "description": escape_description(description_soup.text),
-                         "category":category}
+                         "description": gen_description(description_soup),
+                         "category": category}
                 schema["types"][title] = type_
                 print("Adding type", title, "of category", category)
     print(len(schema["types"]), "types")
