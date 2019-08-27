@@ -109,7 +109,7 @@ def gen_build_info():
 
 def get_html(soup):
     for link in soup.find_all("a"):
-        if link["href"].startswith("#"):
+        if link["href"].startswith("#") and not link.text == "":
             if " " in link.text:
                 # Article
                 link["href"] = "#/articles/%s" % link.text
@@ -133,27 +133,38 @@ def gen_description(soup):
 def parse_botapi():
     r = requests.get("https://core.telegram.org/bots/api")
     soup = BeautifulSoup(r.text, features="lxml")
-    schema = {"types": {}, "methods": {}, "version": soup.find_all("strong")[2].text.lstrip("Bot API "),
+    schema = {"types": {}, "methods": {}, "articles": {}, "version": soup.find_all("strong")[2].text.lstrip("Bot API "),
               "build_info": gen_build_info()}
     print("Building schema.json for Bot API version", schema["version"])
     for section in soup.find_all("h4"):
         title = section.text
         description_soup = section.find_next_sibling()
+        if not description_soup:
+            continue
         category = description_soup.find_previous_sibling("h3").text
-        if not " " in title:
-            if title[0].islower():
-                method = {"arguments": determine_arguments(description_soup),
-                          "returns": determine_return(description_soup),
-                          "description": gen_description(description_soup),
-                          "category": category}
-                schema["methods"][title] = method
-                print("Adding method", title, "of category", category)
-            else:
-                type_ = {"fields": determine_arguments(description_soup),
-                         "description": gen_description(description_soup),
-                         "category": category}
-                schema["types"][title] = type_
-                print("Adding type", title, "of category", category)
+        if " " in title:
+            articles_soup = description_soup
+            for sibling in description_soup.next_elements:
+                if sibling.name in ["h3", "h4"]:
+                    break
+                articles_soup.append(sibling)
+            article = gen_description(articles_soup)
+            article["category"] = category
+            schema["articles"][title] = article
+            print("Adding article", title, "of category", category)
+        elif title[0].islower():
+            method = {"arguments": determine_arguments(description_soup),
+                      "returns": determine_return(description_soup),
+                      "description": gen_description(description_soup),
+                      "category": category}
+            schema["methods"][title] = method
+            print("Adding method", title, "of category", category)
+        else:
+            type_ = {"fields": determine_arguments(description_soup),
+                     "description": gen_description(description_soup),
+                     "category": category}
+            schema["types"][title] = type_
+            print("Adding type", title, "of category", category)
     print(len(schema["types"]), "types")
     print(len(schema["methods"]), "methods")
     print("Build info:", schema["build_info"])
