@@ -121,7 +121,7 @@ def get_html(soup):
             else:
                 # Probably type
                 link["href"] = "#/types/%s" % link.text
-    return str(soup).replace("<td>", "").replace("</td>", "")
+    return str(soup).replace("<td>", "").replace("</td>", "").replace("<body>", "").replace("</body>", "")
 
 
 def gen_description(soup):
