@@ -11,7 +11,7 @@ TYPE_OVERRIDES = {
     "Integer": "int",
     "Boolean": "bool"
 }
-
+BOT_API_URL = "https://core.telegram.org/bots/api"
 REPLACEMENTS = {
     "\u2019": "'",
     "\u2018": "'",
@@ -130,25 +130,37 @@ def gen_description(soup):
     return description
 
 
-def parse_botapi():
-    r = requests.get("https://core.telegram.org/bots/api")
+def get_article(description_soup):
+    articles_soup = description_soup
+    for sibling in description_soup.next_elements:
+        if sibling.name in ["h3", "h4"]:
+            break
+        articles_soup.append(sibling)
+    article = gen_description(articles_soup)
+    return article
+
+
+def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, changelog=False):
+    r = requests.get(dwn_url)
     soup = BeautifulSoup(r.text, features="lxml")
-    schema = {"types": {}, "methods": {}, "articles": {}, "version": soup.find_all("strong")[2].text.lstrip("Bot API "),
-              "build_info": gen_build_info()}
-    print("Building schema.json for Bot API version", schema["version"])
-    for section in soup.find_all("h4"):
+    if update_version:
+        schema["version"] = soup.find_all("strong")[2].text.lstrip("Bot API ")
+    for section in soup.find_all("h3" if changelog else "h4"):
         title = section.text
         description_soup = section.find_next_sibling()
         if not description_soup:
             continue
         category = description_soup.find_previous_sibling("h3").text
-        if " " in title:
-            articles_soup = description_soup
-            for sibling in description_soup.next_elements:
-                if sibling.name in ["h3", "h4"]:
-                    break
-                articles_soup.append(sibling)
-            article = gen_description(articles_soup)
+        if changelog:
+            article = get_article(description_soup)
+            article["category"] = category
+            schema["changelogs"][title] = article
+            print("Adding changelog", title)
+        elif " " in title:
+            if "Recent changes" in category:
+                print("Changelog article, skipping to be added later")
+                continue
+            article = get_article(description_soup)
             article["category"] = category
             schema["articles"][title] = article
             print("Adding article", title, "of category", category)
@@ -165,12 +177,30 @@ def parse_botapi():
                      "category": category}
             schema["types"][title] = type_
             print("Adding type", title, "of category", category)
+
+
+def generate_schema():
+    schema = {"types": {}, "methods": {}, "articles": {}, "changelogs": {}, "version": "Not found yet",
+              "build_info": gen_build_info()}
+    generate_bot_api_data(schema, update_version=True)
+    print("Built schema for Bot API version", schema["version"])
+    print("Getting changelogs...")
+    generate_bot_api_data(schema, "https://core.telegram.org/bots/api-changelog", changelog=True)
     print(len(schema["types"]), "types")
     print(len(schema["methods"]), "methods")
     print("Build info:", schema["build_info"])
-    with open("public/schema.json", 'w') as f:
+    with open("public/all.json", 'w') as f:
         json.dump(schema, f, indent=4)
+    for name, data in schema.items():
+        if name == "version":
+            extension = "txt"
+            write_data = data
+        else:
+            extension = "json"
+            write_data = json.dumps(data)
+        with open("public/{}.{}".format(name, extension), 'w') as f:
+            f.write(write_data)
 
 
 if __name__ == '__main__':
-    parse_botapi()
+    generate_schema()
