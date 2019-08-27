@@ -1,4 +1,6 @@
 import time
+from copy import copy
+
 import html2markdown
 import requests
 from bs4 import BeautifulSoup
@@ -131,12 +133,14 @@ def gen_description(soup):
 
 
 def get_article(description_soup):
-    articles_soup = description_soup
-    for sibling in description_soup.next_elements:
+    articles_text = ""
+    for sibling in list(description_soup.next_elements):
         if sibling.name in ["h3", "h4"]:
             break
-        articles_soup.append(sibling)
-    article = gen_description(articles_soup)
+        else:
+            articles_text += str(sibling)
+    articles_soup = BeautifulSoup(articles_text, "lxml")
+    article = gen_description(articles_soup.find("body"))
     return article
 
 
@@ -153,7 +157,11 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
         category = description_soup.find_previous_sibling("h3").text
         if changelog:
             article = get_article(description_soup)
-            article["category"] = category
+            version = description_soup.find("strong")
+            if version and version.text.startswith("Bot API "):
+                article["version"] = version.text.lstrip("Bot API ")
+            else:
+                article["version"] = title
             schema["changelogs"][title] = article
             print("Adding changelog", title)
         elif " " in title:
@@ -197,7 +205,7 @@ def generate_schema():
             write_data = data
         else:
             extension = "json"
-            write_data = json.dumps(data)
+            write_data = json.dumps(data, indent=4)
         with open("public/{}.{}".format(name, extension), 'w') as f:
             f.write(write_data)
 
