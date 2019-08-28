@@ -133,8 +133,8 @@ def gen_description(soup):
 
 
 def get_article(description_soup):
-    articles_text = ""
-    for sibling in list(description_soup.next_elements):
+    articles_text = str(description_soup)
+    for sibling in list(description_soup.next_siblings):
         if sibling.name in ["h3", "h4"]:
             break
         else:
