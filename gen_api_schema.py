@@ -112,7 +112,7 @@ def gen_build_info():
 def get_html(soup):
     for link in soup.find_all("a"):
         if link["href"].startswith("#") and not link.text == "":
-            if " " in link.text:
+            if "-" in link["href"]:
                 # Article
                 link["href"] = "#/articles/%s" % link["href"].split("#")[1]
             elif link.text[0].islower():
