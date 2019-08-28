@@ -26,6 +26,29 @@ REPLACEMENTS = {
 }
 
 
+class Version:
+    def __init__(self, major, minor, patch=None):
+        self.major = int(major)
+        self.minor = int(minor)
+        if patch:
+            self.patch = int(patch)
+        else:
+            self.patch = None
+
+    def __str__(self):
+        if self.patch:
+            return "{}.{}patch{}".format(self.major, self.minor, self.patch)
+        else:
+            return "{}.{}".format(self.major, self.minor)
+
+def serialize(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, Version):
+        return str(obj)
+
+    return obj.__dict__
+
 def escape_description(description):
     for repl in REPLACEMENTS.items():
         description = description.replace(*repl)
@@ -150,7 +173,10 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
     soup = BeautifulSoup(r.text, features="lxml")
     if update_version:
         schema["version"] = soup.find_all("strong")[2].text.lstrip("Bot API ")
-    for section in soup.find_all(["h3", "h4"]):
+    sections = soup.find_all(["h3", "h4"])
+    if changelog:
+        sections.reverse()
+    for section in sections:
         title = section.text
         description_soup = section.find_next_sibling()
         if not description_soup:
@@ -160,9 +186,16 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
             article = get_article(description_soup)
             version = description_soup.find("strong")
             if version and version.text.startswith("Bot API "):
-                article["version"] = version.text.lstrip("Bot API ")
+                article["version"] = Version(*version.text.lstrip("Bot API ").split("."))
+            elif len(schema["changelogs"]) > 0:
+                previous = list(schema["changelogs"].values())[-1]["version"]
+                article["version"] = copy(previous)
+                if article["version"].patch:
+                    article["version"].patch += 1
+                else:
+                    article["version"].patch = 1
             else:
-                article["version"] = title
+                article["version"] = Version(1, 0)
             schema["changelogs"][title] = article
             print("Adding changelog", title)
         elif " " in title:
@@ -201,14 +234,14 @@ def generate_schema():
     print(len(schema["methods"]), "methods")
     print("Build info:", schema["build_info"])
     with open("public/all.json", 'w') as f:
-        json.dump(schema, f, indent=4)
+        json.dump(schema, f, indent=4, default=serialize)
     for name, data in schema.items():
         if name == "version":
             extension = "txt"
             write_data = data
         else:
             extension = "json"
-            write_data = json.dumps(data, indent=4)
+            write_data = json.dumps(data, indent=4, default=serialize)
         with open("public/{}.{}".format(name, extension), 'w') as f:
             f.write(write_data)
 
