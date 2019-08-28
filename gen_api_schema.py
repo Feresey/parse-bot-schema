@@ -170,6 +170,7 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
                 continue
             article_id = section.find("a")["name"]
             article = get_article(description_soup)
+            article["title"] = title
             article["category"] = category
             schema["articles"][article_id] = article
             print("Adding article", title, "of category", category)
