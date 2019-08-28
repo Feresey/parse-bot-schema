@@ -1,3 +1,4 @@
+import html
 import time
 from copy import copy
 
@@ -128,7 +129,7 @@ def gen_description(soup):
     description = {}
     description["plaintext"] = escape_description(soup.text)
     description["html"] = get_html(soup)
-    description["markdown"] = html2markdown.convert(description["html"])
+    description["markdown"] = html.unescape(html2markdown.convert(description["html"]))
     return description
 
 
