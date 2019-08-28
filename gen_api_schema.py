@@ -114,7 +114,7 @@ def get_html(soup):
         if link["href"].startswith("#") and not link.text == "":
             if " " in link.text:
                 # Article
-                link["href"] = "#/articles/%s" % link.text
+                link["href"] = "#/articles/%s" % link["href"].split("#")[1]
             elif link.text[0].islower():
                 # Method
                 link["href"] = "#/methods/%s" % link.text
@@ -168,9 +168,11 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
             if "Recent changes" in category:
                 print("Changelog article, skipping to be added later")
                 continue
+            article_id = section.find("a")["name"]
             article = get_article(description_soup)
+            article["title"] = title
             article["category"] = category
-            schema["articles"][title] = article
+            schema["articles"][article_id] = article
             print("Adding article", title, "of category", category)
         elif title[0].islower():
             method = {"arguments": determine_arguments(description_soup),
