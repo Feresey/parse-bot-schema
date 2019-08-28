@@ -149,7 +149,7 @@ def generate_bot_api_data(schema, dwn_url=BOT_API_URL, update_version=False, cha
     soup = BeautifulSoup(r.text, features="lxml")
     if update_version:
         schema["version"] = soup.find_all("strong")[2].text.lstrip("Bot API ")
-    for section in soup.find_all("h3" if changelog else "h4"):
+    for section in soup.find_all(["h3", "h4"]):
         title = section.text
         description_soup = section.find_next_sibling()
         if not description_soup:
