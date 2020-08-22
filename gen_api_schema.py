@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import html
 import time
 from copy import copy
@@ -11,7 +13,9 @@ import json
 os.makedirs("public", exist_ok=True)
 TYPE_OVERRIDES = {
     "String": "str",
+    "Float number": "float",
     "Integer": "int",
+    "Int": "int",
     "Boolean": "bool"
 }
 BOT_API_URL = "https://core.telegram.org/bots/api"
@@ -78,7 +82,7 @@ def determine_return(description_soup):
     else:
         for item in description_soup.find_all("em"):
             if item.text[0].isupper():
-                return_type = item.text
+                return_type = determine_argtype(item.text)
         return return_type
 
 
